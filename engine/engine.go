@@ -3,9 +3,9 @@ package engine
 import (
 	"bytes"
 	"fmt"
+	"github.com/op/go-logging"
 	"io"
 	"os"
-	//"sort"
 	"strings"
 )
 
@@ -30,6 +30,8 @@ type Engine struct {
 	History      []State
 	CurrentState State
 }
+
+var log = logging.MustGetLogger("sokoban")
 
 // load level from specified file (relative to binary file)
 func NewEngine(filename string) (e *Engine) {

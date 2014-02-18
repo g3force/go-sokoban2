@@ -10,7 +10,11 @@ const (
 )
 
 // convert direction from int to Point
-func (dir Direction) Point() (p Point) {
+func (dir Direction) Point() Point {
+	return PointFromDir(int(dir))
+}
+
+func PointFromDir(dir int) (p Point) {
 	dir = dir % 4
 	switch dir {
 	case RIGHT: // right
@@ -26,5 +30,9 @@ func (dir Direction) Point() (p Point) {
 		p.X = 0
 		p.Y = -1
 	}
-	return p
+	return
+}
+
+func PointAfterMove(curPos Point, dir int) Point {
+	return curPos.Add(PointFromDir(dir))
 }

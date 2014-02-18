@@ -113,6 +113,13 @@ func main() {
 	// surface
 	e.Print()
 
+	p := engine.Point{4, 2}
+	fmt.Println(p)
+	path, ok := e.FigureShortestPath(p)
+	fmt.Println(path)
+	fmt.Println(ok)
+	e.Print()
+
 	var choice string
 	for {
 		choice = ""
