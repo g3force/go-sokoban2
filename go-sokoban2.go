@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"github.com/g3force/go-sokoban2/ai"
 	"github.com/g3force/go-sokoban2/engine"
+	"github.com/lye/curses"
+	"github.com/op/go-logging"
 	stdlog "log"
 	"os"
 	"strconv"
-
-	"github.com/op/go-logging"
 )
 
 const (
-	LOGGER_NAME = "sokoban"
+	LOGGER_NAME  = "sokoban"
+	windowHeight = 20
+	windowWidth  = 40
 )
 
 var log = logging.MustGetLogger(LOGGER_NAME)
@@ -110,44 +112,48 @@ func main() {
 	//	return
 	//}
 
-	// surface
-	e.Print()
-
-	p := engine.Point{4, 2}
-	fmt.Println(p)
-	path, ok := e.FigureShortestPath(p)
-	fmt.Println(path)
-	fmt.Println(ok)
-	e.Print()
-
-	var choice string
+	fmt.Println("Press m for manual or r for run.")
 	for {
-		choice = ""
-		fmt.Println("Press m for manual or r for run: ")
+		var choice string
 		fmt.Scanf("%s", &choice)
+
 		if choice == "r" {
 			//ai.Run(e, single, outputFreq, printSurface, straightAhead, threads)
-			break
+			e.Print()
+			ai.Solve(e)
+			return
 		} else if choice == "m" {
-			fmt.Println("Manual mode\n")
-			var input string
-			for {
-				fmt.Scanf("%s", &input)
-				switch input {
-				case "0":
-					e.Move(0)
-				case "1":
-					e.Move(1)
-				case "2":
-					e.Move(2)
-				case "3":
-					e.Move(3)
-				default:
-					e.UndoStep()
-				}
-				e.Print()
-			}
 			break
+		}
+	}
+
+	// init curses GUI
+	curses.Initscr()
+	defer curses.End()
+	curses.Cbreak()
+	curses.Noecho()
+	curses.Stdscr.Keypad(true)
+
+	var input string
+	for {
+		curses.Mvaddstr(0, 0, e.SurfaceToStr(e.CurrentState))
+		curses.Mvaddstr(len(e.Surface)+5, 0, "w,a,s,d to control, q to quit")
+		curses.Refresh()
+		input = string(curses.Getch())
+		//fmt.Scanf("%s", &input)
+		switch input {
+		case "d":
+			e.Move(0)
+		case "s":
+			e.Move(1)
+		case "a":
+			e.Move(2)
+		case "w":
+			e.Move(3)
+		case "q":
+			return
+		default:
+			e.UndoStep()
 		}
 	}
 }

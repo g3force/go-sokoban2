@@ -2,10 +2,8 @@ package ai
 
 import (
 	"github.com/g3force/go-sokoban2/engine"
-	"github.com/op/go-logging"
+	//"github.com/op/go-logging"
 )
-
-var log = logging.MustGetLogger("sokoban")
 
 // check, if given point is a dead corner
 func DeadCorner(e *engine.Engine, point engine.Point) (found bool, x int8) {

@@ -153,14 +153,14 @@ func (e *Engine) Move(dir Direction) (success bool) {
 	success = false
 
 	dest1 := e.CurrentState.Figure.Add(dir.Point())
-	valid, containsBox := e.checkDestination(dest1)
+	valid, containsBox := e.CheckDestination(dest1)
 	if !valid {
 		return
 	}
 	var dest2 Point
 	if valid && containsBox {
 		dest2 = dest1.Add(dir.Point())
-		valid, containsSecBox := e.checkDestination(dest2)
+		valid, containsSecBox := e.CheckDestination(dest2)
 		if !valid || containsSecBox {
 			return
 		}
@@ -201,7 +201,7 @@ func (e *Engine) appendState2History(state State) {
 	e.History = append(e.History, newState)
 }
 
-func (e *Engine) checkDestination(dest Point) (valid bool, containsBox bool) {
+func (e *Engine) CheckDestination(dest Point) (valid bool, containsBox bool) {
 	valid = false
 	containsBox = false
 
@@ -229,22 +229,28 @@ func (e *Engine) Won() bool {
 }
 
 // print the current Surface
-func (e *Engine) Print() {
+func (e *Engine) SurfaceToStr(state State) string {
 	var buffer bytes.Buffer
+	buffer.WriteString("  ")
+	for x := 0; x < len(e.Surface[0]); x++ {
+		buffer.WriteString(fmt.Sprintf("%d ", x))
+	}
+	buffer.WriteString("\n")
 	for y := 0; y < len(e.Surface); y++ {
+		buffer.WriteString(fmt.Sprintf("%d ", y))
 		for x := 0; x < len(e.Surface[y]); x++ {
 			p := NewPoint(x, y)
 			if e.Surface[y][x] == WALL {
 				buffer.WriteString("#")
-			} else if e.CurrentState.Figure.X == x && e.CurrentState.Figure.Y == y {
+			} else if state.Figure.X == x && state.Figure.Y == y {
 				if e.Targets.Contains(p) {
 					buffer.WriteString("+")
 				} else {
 					buffer.WriteString("x")
 				}
-			} else if e.CurrentState.Boxes.Contains(p) {
+			} else if state.Boxes.Contains(p) {
 				if e.Targets.Contains(p) {
-					buffer.WriteString("%%")
+					buffer.WriteString("%")
 				} else {
 					buffer.WriteString("$")
 				}
@@ -262,12 +268,20 @@ func (e *Engine) Print() {
 		buffer.WriteString("\n")
 	}
 	fieldnr, deadnr := e.Surface.AmountOfFields()
-	buffer.WriteString(fmt.Sprintf("Boxes: %d\n", len(e.CurrentState.Boxes)))
+	buffer.WriteString(fmt.Sprintf("Boxes: %d\n", len(state.Boxes)))
 	buffer.WriteString(fmt.Sprintf("Points: %d\n", len(e.Targets)))
 	buffer.WriteString(fmt.Sprintf("Fields: %d\n", fieldnr))
 	buffer.WriteString(fmt.Sprintf("DeadFields: %d\n", deadnr))
 
-	fmt.Print(buffer.String())
+	return buffer.String()
+}
+
+func (e *Engine) Print() {
+	fmt.Print(e.SurfaceToStr(e.CurrentState))
+}
+
+func (e *Engine) PrintState(state State) {
+	fmt.Print(e.SurfaceToStr(state))
 }
 
 // check if the surface border was reached
@@ -284,7 +298,7 @@ func (surface *Surface) AmountOfFields() (fields int, dead int8) {
 			if (*surface)[y][x] != WALL {
 				fields++
 			}
-			if (*surface)[y][x] != DEAD {
+			if (*surface)[y][x] == DEAD {
 				dead++
 			}
 		}
