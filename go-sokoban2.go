@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/g3force/go-sokoban2/ai"
 	"github.com/g3force/go-sokoban2/engine"
-	"github.com/lye/curses"
+	curses "github.com/lye/curses"
 	"github.com/op/go-logging"
 	stdlog "log"
 	"os"
@@ -19,21 +19,24 @@ const (
 
 var log = logging.MustGetLogger(LOGGER_NAME)
 
-func main() {
-	logging.SetFormatter(logging.MustStringFormatter("▶ %{level:.1s} 0x%{id:x} %{message}"))
+type CursesLogBackend struct {
+	xOffset int
+	cursor  *int
+}
 
-	// Setup one stdout and one syslog backend.
-	logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
-	logBackend.Color = true
-
-	syslogBackend, err := logging.NewSyslogBackend("")
-	if err != nil {
-		log.Fatal(err)
+func (b CursesLogBackend) Log(level logging.Level, calldepth int, rec *logging.Record) error {
+	maxy, _ := curses.Getmaxyx()
+	s := rec.Formatted()
+	curses.Mvaddstr(*b.cursor, b.xOffset, s)
+	curses.Mvaddstr((*b.cursor)+1, b.xOffset, "---------------------------------")
+	(*b.cursor)++
+	if *b.cursor > maxy {
+		(*b.cursor) = 0
 	}
+	return nil
+}
 
-	// Combine them both into one logging backend.
-	logging.SetBackend(logBackend, syslogBackend)
-
+func main() {
 	runmode := false
 	single := true
 	level := "res/alevel"
@@ -97,6 +100,23 @@ func main() {
 		}
 	}
 
+	//logging.SetFormatter(logging.MustStringFormatter("▶ %{level:.1s} 0x%{id:x} %{message}"))
+	logging.SetFormatter(logging.MustStringFormatter("%{level:.1s} %{message}"))
+
+	fo, err := os.Create("sokoban.log")
+	if err != nil {
+		panic(err)
+	}
+	defer fo.Close()
+
+	// Setup one stdout and one syslog backend.
+	//logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
+	logBackend := logging.NewLogBackend(fo, "", stdlog.Lshortfile)
+	logBackend.Color = true
+
+	// Combine them both into one logging backend.
+	logging.SetBackend(logBackend)
+
 	e := engine.NewEngine(level)
 	ai.MarkDeadFields(e)
 	log.Info("Level: " + level)
@@ -134,13 +154,18 @@ func main() {
 	curses.Noecho()
 	curses.Stdscr.Keypad(true)
 
+	//cursor := new(int)
+	//clb := CursesLogBackend{, cursor}
+	//xOffset := 7 + 2*len(e.Surface[0])
+	//logging.SetBackend(clb)
+
 	var input string
 	for {
 		curses.Mvaddstr(0, 0, e.SurfaceToStr(e.CurrentState))
 		curses.Mvaddstr(len(e.Surface)+5, 0, "w,a,s,d to control, q to quit")
 		curses.Refresh()
+		log.Debug("blubb")
 		input = string(curses.Getch())
-		//fmt.Scanf("%s", &input)
 		switch input {
 		case "d":
 			e.Move(0)

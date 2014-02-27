@@ -76,13 +76,13 @@ func Solve(e *engine.Engine) (path []engine.Point, solved bool) {
 	passed := States{initState}
 
 	for len(fringe) > 0 {
-		fmt.Println(fringe.String())
-		fmt.Println(passed.String())
+		log.Debug("Fringe: " + fringe.String())
+		log.Debug("Passed: " + passed.String())
 		curNode := fringe[0]
 		e.PrintState(curNode.S)
-		var in string
-		fmt.Scanf("%s", &in)
-		if curNode.V == 0 {
+		//var in string
+		//fmt.Scanf("%s", &in)
+		if e.Won() {
 			solved = true
 			//node := &curNode
 			//for (*node).pre != nil {
@@ -92,17 +92,19 @@ func Solve(e *engine.Engine) (path []engine.Point, solved bool) {
 			//path = append(path, (*node).P)
 			return
 		}
-		// expand best node
-		nodes := expand(&curNode.S, e)
+
+		// update engine
+		e.CurrentState = curNode.S
 		// and remove it
 		fringe = fringe[1:len(fringe)]
+		// we passed it
+		passed.Insert(&curNode.S, e)
+		// expand best node
+		nodes := expand(&curNode, e, &passed)
 
-		// add expanded nodes to fringe
-		for _, node := range nodes {
-			if passed.Insert(&node, e) {
-				dist = calcDistBoxes(node.Boxes, (*e).Targets)
-				fringe = append(fringe, AI_Node{node, dist, &curNode})
-			}
+		// update fringe todo inefficient
+		for _, node := range *nodes {
+			fringe = append(fringe, node)
 		}
 		sort.Sort(&fringe)
 	}
@@ -110,19 +112,24 @@ func Solve(e *engine.Engine) (path []engine.Point, solved bool) {
 	return
 }
 
-func expand(state *engine.State, e *engine.Engine) (newStates States) {
-	for box, _ := range (*state).Boxes {
+func expand(node *AI_Node, e *engine.Engine, passed *States) (nodes *AI_Nodes) {
+	nodes = new(AI_Nodes)
+	for box, _ := range (*node).S.Boxes {
 		for i := 0; i < 4; i++ {
 			pfigure := engine.PointAfterMove(box, (i % 4))
 			pbox := engine.PointAfterMove(box, ((i + 2) % 4))
 
 			if PointFreeForFigure(pfigure, e) && PointFreeForBox(pbox, e) {
-				_, ok := e.FigureShortestPath((*state).Figure, pfigure)
+				figPath, ok := e.FigureShortestPath((*node).S.Figure, pfigure)
 				if ok {
-					nState := engine.State{state.Boxes.Clone(), box}
+					nState := engine.State{(*node).S.Boxes.Clone(), box}
 					delete(nState.Boxes, box)
 					nState.Boxes[pbox] = true
-					newStates = append(newStates, nState)
+					if !passed.Contains(&nState, e) {
+						dist := calcDistBoxes(nState.Boxes, (*e).Targets)
+						dist += float64(len(figPath))
+						*nodes = append(*nodes, AI_Node{nState, dist, node})
+					}
 				}
 			}
 		}
@@ -141,7 +148,7 @@ func calcDistBoxes(b1 engine.Points, b2 engine.Points) (dist float64) {
 			}
 		}
 		dist += tmpDist
-		fmt.Printf("%f\n", tmpDist)
+		//fmt.Printf("%f\n", tmpDist)
 	}
 	return
 }
